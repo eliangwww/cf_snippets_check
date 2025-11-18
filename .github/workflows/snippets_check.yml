@@ -34,18 +34,21 @@ jobs:
               -H "X-Auth-Key: $CF_API_KEY" \
               -H "Content-Type: application/json")
 
+            # 调试输出
+            echo "DEBUG: Current page API response:"
+            echo "$ZONES" | jq
+
             # 检查 API 是否成功
             SUCCESS=$(echo "$ZONES" | jq -r '.success')
             if [ "$SUCCESS" != "true" ]; then
-              echo "❌ API call failed. Response:"
-              echo "$ZONES" | jq
+              echo "❌ API call failed. Please check your email/key and permissions."
               exit 1
             fi
 
-            # 检查 result 是否为空
+            # 检查 result 是否存在且非空
             RESULT_COUNT=$(echo "$ZONES" | jq '.result | length')
-            if [ "$RESULT_COUNT" -eq 0 ]; then
-              echo "No more zones found, exiting loop."
+            if [ "$(echo "$ZONES" | jq '.result == null')" = "true" ] || [ "$RESULT_COUNT" -eq 0 ]; then
+              echo "No more zones found or permission issue, exiting loop."
               break
             fi
 
@@ -54,7 +57,6 @@ jobs:
               DOMAIN=$(echo "$zone" | jq -r '.name')
               ZONE_ID=$(echo "$zone" | jq -r '.id')
 
-              # 查询 Snippets 权限
               RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/rulesets/capabilities" \
                 -H "X-Auth-Email: $CF_API_EMAIL" \
                 -H "X-Auth-Key: $CF_API_KEY" \
@@ -76,7 +78,6 @@ jobs:
             if [ "$RESULT_COUNT" -lt "$PER_PAGE" ]; then
               break
             fi
-
             PAGE=$((PAGE + 1))
           done
 
