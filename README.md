@@ -17,8 +17,8 @@
 
 | Domain       | Zone ID | Snippets Available | Max Snippets |
 |--------------|---------|-----------------|--------------|
-| example.com  | abc123  | ✅               | Unlimited    |
-| mysite.net   | def456  | ❌               | -            |
+| example.com  | abc123  | ❌              | Unlimited    |
+| mysite.net   | def456  | ✅              | 5            |
 
 ---
 
