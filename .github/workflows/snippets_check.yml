@@ -1,62 +1,99 @@
-- name: Generate Snippets Status (Parallel Safe with Max)
-  env:
-    CF_API_EMAIL: ${{ secrets.CF_API_EMAIL }}
-    CF_API_KEY: ${{ secrets.CF_API_KEY }}
-  run: |
-    OUTPUT_FILE="snippets_status.md"
-    echo "| Domain | Zone ID | Snippets Available | Max Snippets |" > $OUTPUT_FILE
-    echo "|--------|---------|-----------------|--------------|" >> $OUTPUT_FILE
+name: Cloudflare Snippets Check (Parallel + Max Snippets)
 
-    PAGE=1
-    PER_PAGE=50
-    TEMP_DIR=$(mktemp -d)
+on:
+  schedule:
+    - cron: '0 12 * * *'  # 每天中午12点执行
+  workflow_dispatch:
 
-    while :; do
-      ZONES=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?per_page=$PER_PAGE&page=$PAGE" \
-        -H "X-Auth-Email: $CF_API_EMAIL" \
-        -H "X-Auth-Key: $CF_API_KEY" \
-        -H "Content-Type: application/json")
+jobs:
+  check_snippets_parallel_max:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      SUCCESS=$(echo "$ZONES" | jq -r '.success')
-      if [ "$SUCCESS" != "true" ]; then
-        echo "❌ API call failed"
-        exit 1
-      fi
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq git curl
 
-      ZONES_ARRAY=$(echo "$ZONES" | jq -c '.result // empty | .[] | {id: .id, name: .name}')
-      if [ -z "$ZONES_ARRAY" ]; then break; fi
+      - name: Generate Snippets Status (Parallel Safe with Max)
+        env:
+          CF_API_EMAIL: ${{ secrets.CF_API_EMAIL }}
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+        run: |
+          OUTPUT_FILE="snippets_status.md"
+          echo "| Domain | Zone ID | Snippets Available | Max Snippets |" > $OUTPUT_FILE
+          echo "|--------|---------|-----------------|--------------|" >> $OUTPUT_FILE
 
-      for zone in $ZONES_ARRAY; do
-        (
-          DOMAIN=$(echo "$zone" | jq -r '.name')
-          ZONE_ID=$(echo "$zone" | jq -r '.id')
+          PAGE=1
+          PER_PAGE=50
+          TEMP_DIR=$(mktemp -d)
 
-          RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/rulesets/capabilities" \
-            -H "X-Auth-Email: $CF_API_EMAIL" \
-            -H "X-Auth-Key: $CF_API_KEY" \
-            -H "Content-Type: application/json")
+          while :; do
+            # 获取当前页域名
+            ZONES=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?per_page=$PER_PAGE&page=$PAGE" \
+              -H "X-Auth-Email: $CF_API_EMAIL" \
+              -H "X-Auth-Key: $CF_API_KEY" \
+              -H "Content-Type: application/json")
 
-          # 获取 Max Snippets，API为空则显示 Unlimited
-          SNIPPETS_COUNT=$(echo "$RESPONSE" | jq -r '.result[]? | select(.id=="rulesets.snippets_rule_max") | .value')
-          if [ -z "$SNIPPETS_COUNT" ] || [ "$SNIPPETS_COUNT" == "null" ]; then
-            SNIPPETS_COUNT="Unlimited"
-            AVAILABLE="✅"
-          else
-            AVAILABLE="✅"
-          fi
+            SUCCESS=$(echo "$ZONES" | jq -r '.success')
+            if [ "$SUCCESS" != "true" ]; then
+              echo "❌ API call failed"
+              echo "$ZONES" | jq
+              exit 1
+            fi
 
-          TMP_FILE=$(mktemp "$TEMP_DIR/${ZONE_ID}_XXXX.md")
-          echo "| $DOMAIN | $ZONE_ID | $AVAILABLE | $SNIPPETS_COUNT |" > "$TMP_FILE"
-        ) &
-      done
-      wait
+            # 安全处理 result 数组
+            ZONES_ARRAY=$(echo "$ZONES" | jq -c '.result // empty | .[] | {id: .id, name: .name}')
+            if [ -z "$ZONES_ARRAY" ]; then
+              echo "⚠️ No zones found on this page"
+              break
+            fi
 
-      if compgen -G "$TEMP_DIR/*.md" > /dev/null; then
-        cat "$TEMP_DIR"/*.md >> $OUTPUT_FILE
-        rm -f "$TEMP_DIR"/*.md
-      fi
+            # 并发处理每个域名
+            for zone in $ZONES_ARRAY; do
+              (
+                DOMAIN=$(echo "$zone" | jq -r '.name')
+                ZONE_ID=$(echo "$zone" | jq -r '.id')
 
-      RESULT_COUNT=$(echo "$ZONES" | jq '.result | length')
-      if [ "$RESULT_COUNT" -lt "$PER_PAGE" ]; then break; fi
-      PAGE=$((PAGE + 1))
-    done
+                RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/rulesets/capabilities" \
+                  -H "X-Auth-Email: $CF_API_EMAIL" \
+                  -H "X-Auth-Key: $CF_API_KEY" \
+                  -H "Content-Type: application/json")
+
+                # 获取 Max Snippets，如果为空则显示 Unlimited
+                SNIPPETS_COUNT=$(echo "$RESPONSE" | jq -r '.result[]? | select(.id=="rulesets.snippets_rule_max") | .value')
+                if [ -z "$SNIPPETS_COUNT" ] || [ "$SNIPPETS_COUNT" == "null" ]; then
+                  SNIPPETS_COUNT="Unlimited"
+                  AVAILABLE="✅"
+                else
+                  AVAILABLE="✅"
+                fi
+
+                # 安全写入临时文件
+                TMP_FILE=$(mktemp "$TEMP_DIR/${ZONE_ID}_XXXX.md")
+                echo "| $DOMAIN | $ZONE_ID | $AVAILABLE | $SNIPPETS_COUNT |" > "$TMP_FILE"
+              ) &
+            done
+            wait
+
+            # 合并临时文件到最终输出
+            if compgen -G "$TEMP_DIR/*.md" > /dev/null; then
+              cat "$TEMP_DIR"/*.md >> $OUTPUT_FILE
+              rm -f "$TEMP_DIR"/*.md
+            fi
+
+            RESULT_COUNT=$(echo "$ZONES" | jq '.result | length')
+            if [ "$RESULT_COUNT" -lt "$PER_PAGE" ]; then break; fi
+            PAGE=$((PAGE + 1))
+          done
+
+      - name: Commit and Push results
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git add snippets_status.md
+          git commit -m "Update Cloudflare Snippets status [parallel max] [skip ci]" || echo "No changes to commit"
+          git push origin HEAD
