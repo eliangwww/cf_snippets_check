@@ -1,17 +1,17 @@
 | Domain | Zone ID | Snippets Available | Max Snippets |
 |--------|---------|--------------------|--------------|
-| j88****.io | 0364**** | ✅ | Unlimited |
-| 发发发****.re | 1a7a**** | ✅ | Unlimited |
-| 168****org | 4483**** | ✅ | Unlimited |
-| z-8****.re | 5ac5**** | ✅ | Unlimited |
-| haf****org | 6fdb**** | ✅ | Unlimited |
-| y-8****.re | 7d71**** | ✅ | Unlimited |
-| haf****.ch | 8708**** | ✅ | Unlimited |
-| z-1****.re | 8b21**** | ✅ | Unlimited |
-| v88****.io | 9195**** | ✅ | Unlimited |
-| x-1****.re | a032**** | ✅ | Unlimited |
-| 885****.io | aa51**** | ✅ | Unlimited |
-| x-8****.re | b8cd**** | ✅ | Unlimited |
-| 882****.io | c63f**** | ✅ | Unlimited |
-| 脚本.****.re | d368**** | ✅ | Unlimited |
-| 527****xyz | d6d3**** | ✅ | Unlimited |
+| j88****.io | 0364**** | ❌ | N/A |
+| 发发发****.re | 1a7a**** | ❌ | N/A |
+| 168****org | 4483**** | ❌ | N/A |
+| z-8****.re | 5ac5**** | ❌ | N/A |
+| haf****org | 6fdb**** | ❌ | N/A |
+| y-8****.re | 7d71**** | ❌ | N/A |
+| haf****.ch | 8708**** | ❌ | N/A |
+| z-1****.re | 8b21**** | ❌ | N/A |
+| v88****.io | 9195**** | ❌ | N/A |
+| x-1****.re | a032**** | ❌ | N/A |
+| 885****.io | aa51**** | ❌ | N/A |
+| x-8****.re | b8cd**** | ❌ | N/A |
+| 882****.io | c63f**** | ❌ | N/A |
+| 脚本.****.re | d368**** | ❌ | N/A |
+| 527****xyz | d6d3**** | ❌ | N/A |
