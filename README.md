@@ -42,11 +42,26 @@
    - 运行后会在仓库根目录生成 `snippets_status.md`
    - 包含所有域名的 Snippets 可用状态和最大数量
   
-   {
+
+3️⃣ 获取当前计划的 Max Snippets
+
+可以用 Cloudflare API 查询 rulesets.snippets_rule_max：
+
+curl -s -X GET "https://api.cloudflare.com/client/v4/zones/<ZONE_ID>/rulesets/capabilities" \
+  -H "X-Auth-Email: <EMAIL>" \
+  -H "X-Auth-Key: <API_KEY>" \
+  -H "Content-Type: application/json" | jq
+
+
+返回示例：
+
+{
   "id": "rulesets.snippets_rule_max",
   "value": 100
 }
 
+
+value 就是该 Zone 可用的最大 Snippets 数量。
 
 ---
 
