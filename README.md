@@ -27,7 +27,29 @@
 ### 1️⃣ 准备 GitHub Secrets
 
 - `CF_API_EMAIL`：你的 Cloudflare 邮箱  
-- `CF_API_KEY`：你的 Cloudflare 全局 API Key  
+- `CF_API_KEY`：你的 Cloudflare 全局 API Key
+
+⭐workflow 权限
+
+你可以限制是否允许 Fork 或其他用户触发你的 Actions。
+
+步骤：
+
+进入仓库 Settings
+
+左侧选择 Actions
+
+在 General 标签页找到：
+
+🔧 Workflow permissions
+
+Read repository contents permission（默认）
+运行 workflow 时只能读内容
+
+Read and write permissions
+Workflow 运行时可读写仓库，例如自动提交代码
+
+选择后点 Save。
 
 ### 2️⃣ 配置 Workflow
 
