@@ -13,11 +13,11 @@
 - ✅ 自动生成 Markdown 表格  
 - ✅ 自动提交更新到 GitHub 仓库  
 
-示例表格：
+示例表格：(根据Max Snippets的数量判断是否可用)
 
 | Domain       | Zone ID | Snippets Available | Max Snippets |
 |--------------|---------|-----------------|--------------|
-| example.com  | abc123  | ❌              | Unlimited    |
+| example.com  | abc123  | ❌              | N/A          |
 | mysite.net   | def456  | ✅              | 5            |
 
 ---
