@@ -1,21 +1,21 @@
-name: Cloudflare Snippets Check (Parallel)
+name: Cloudflare Snippets Check (Parallel Safe)
 
 on:
   schedule:
-    - cron: '0 12 * * *'
+    - cron: '0 12 * * *'  # 每天中午12点执行
   workflow_dispatch:
 
 jobs:
-  check_snippets_parallel:
+  check_snippets_parallel_safe:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq git
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq git curl
 
-      - name: Generate Snippets Status in Parallel
+      - name: Generate Snippets Status (Parallel Safe)
         env:
           CF_API_EMAIL: ${{ secrets.CF_API_EMAIL }}
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
@@ -35,21 +35,25 @@ jobs:
               -H "X-Auth-Key: $CF_API_KEY" \
               -H "Content-Type: application/json")
 
+            echo "DEBUG: Current page API response:"
+            echo "$ZONES" | jq
+
             SUCCESS=$(echo "$ZONES" | jq -r '.success')
             if [ "$SUCCESS" != "true" ]; then
-              echo "❌ API call failed."
+              echo "❌ API call failed"
               echo "$ZONES" | jq
               exit 1
             fi
 
-            ZONES_ARRAY=$(echo "$ZONES" | jq -c '.result[] | {id: .id, name: .name}')
+            # 获取域名数组，安全处理 null
+            ZONES_ARRAY=$(echo "$ZONES" | jq -c '.result // empty | .[] | {id: .id, name: .name}')
             if [ -z "$ZONES_ARRAY" ]; then
-              echo "⚠️ No more zones found."
+              echo "⚠️ No zones found on this page"
               break
             fi
 
             # 并发处理每个域名
-            echo "$ZONES_ARRAY" | while read -r zone; do
+            for zone in $ZONES_ARRAY; do
               (
                 DOMAIN=$(echo "$zone" | jq -r '.name')
                 ZONE_ID=$(echo "$zone" | jq -r '.id')
@@ -59,26 +63,31 @@ jobs:
                   -H "X-Auth-Key: $CF_API_KEY" \
                   -H "Content-Type: application/json")
 
-                SNIPPETS_COUNT=$(echo "$RESPONSE" | jq -r '.result[] | select(.id=="rulesets.snippets_rule_max") | .value')
-                if [ -n "$SNIPPETS_COUNT" ]; then
+                SNIPPETS_COUNT=$(echo "$RESPONSE" | jq -r '.result[]? | select(.id=="rulesets.snippets_rule_max") | .value // "-"')
+
+                AVAILABLE="❌"
+                if [ "$SNIPPETS_COUNT" != "-" ]; then
                   AVAILABLE="✅"
-                else
-                  AVAILABLE="❌"
-                  SNIPPETS_COUNT="-"
                 fi
 
-                # 写入临时文件，避免多进程写冲突
-                echo "| $DOMAIN | $ZONE_ID | $AVAILABLE | $SNIPPETS_COUNT |" >> "$TEMP_DIR/$ZONE_ID.md"
+                # 安全写入临时文件
+                TMP_FILE=$(mktemp "$TEMP_DIR/${ZONE_ID}_XXXX.md")
+                echo "| $DOMAIN | $ZONE_ID | $AVAILABLE | $SNIPPETS_COUNT |" > "$TMP_FILE"
               ) &
             done
 
             # 等待所有后台任务完成
             wait
 
-            # 合并临时文件到最终输出
-            cat "$TEMP_DIR"/*.md >> $OUTPUT_FILE
-            rm -f "$TEMP_DIR"/*.md
+            # 合并临时文件到最终输出，存在才合并
+            if compgen -G "$TEMP_DIR/*.md" > /dev/null; then
+              cat "$TEMP_DIR"/*.md >> $OUTPUT_FILE
+              rm -f "$TEMP_DIR"/*.md
+            else
+              echo "⚠️ No temporary files to merge for this page"
+            fi
 
+            # 判断是否最后一页
             RESULT_COUNT=$(echo "$ZONES" | jq '.result | length')
             if [ "$RESULT_COUNT" -lt "$PER_PAGE" ]; then
               break
@@ -93,5 +102,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add snippets_status.md
-          git commit -m "Update Cloudflare Snippets status [parallel] [skip ci]" || echo "No changes to commit"
+          git commit -m "Update Cloudflare Snippets status [parallel safe] [skip ci]" || echo "No changes to commit"
           git push
