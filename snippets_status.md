@@ -5,10 +5,13 @@
 | nbe****.re | 38a8**** | ❌ | N/A |
 | gga****.re | 59dc**** | ❌ | N/A |
 | hg.****com | 6f32**** | ❌ | N/A |
+| huj****net | 7b23**** | ❌ | N/A |
+| cfi****.co | 7e40**** | ❌ | N/A |
 | 916****xyz | 9401**** | ❌ | N/A |
 | xxb****net | 9b6a**** | ❌ | N/A |
 | sbl****.me | a6c0**** | ❌ | N/A |
 | cfi****.me | a89a**** | ❌ | N/A |
 | cfi****.mn | cba7**** | ❌ | N/A |
+| bes****net | d667**** | ❌ | N/A |
 | for****org | e26e**** | ❌ | N/A |
 | cml****.re | f4c9**** | ❌ | N/A |
