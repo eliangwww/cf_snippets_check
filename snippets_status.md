@@ -10,4 +10,3 @@
 | sbl****.me | a6c0**** | ❌ | N/A |
 | cfi****.me | a89a**** | ❌ | N/A |
 | cfi****.mn | cba7**** | ❌ | N/A |
-| for****org | e26e**** | ❌ | N/A |
